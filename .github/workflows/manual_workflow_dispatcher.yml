@@ -1,0 +1,49 @@
+name: terraform plan manual dispatch
+
+on:
+  workflow_dispatch:
+    # Inputs the workflow accepts.
+    inputs:
+      terraform_file_name:
+        # Friendly description to be shown in the UI instead of 'name'
+        description: 'File name of the terraform file which we need to run with terraform'
+        # Default value if no value is explicitly provided
+        default: 'main.tf'
+        # Input has to be provided for the workflow to run
+        required: true
+        # The data type of the input
+        type: string
+      
+env:
+  ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+jobs:
+  terraform_plan:
+    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ~1.0
+
+      - name: Terraform Init
+        id: init
+        run: terraform init -upgrade
+
+      - name: Terraform plan
+        id: plan
+        run: terraform plan
+
+      - name: Terraform apply
+        id: apply
+        run: terraform apply --auto-approve
